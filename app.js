@@ -5,6 +5,7 @@ const bodyParser = require("body-parser");
 const mongoose = require('mongoose');
 const _ = require('lodash');
 
+require("dotenv").config();
 const app = express();
 
 app.set('view engine', 'ejs');
@@ -15,7 +16,7 @@ app.use(express.static("public"));
 const workItems = [];
 
 
-mongoose.connect("mongodb://localhost:27017/todolistDB", {useNewUrlParser : true});
+mongoose.connect(process.env.CONNECTION_URL, {useNewUrlParser : true,  useUnifiedTopology: true});
 
 const itemSchema = new mongoose.Schema({
   name : String
@@ -74,6 +75,7 @@ app.post("/", function(req, res){
 
   const itemName = req.body.newItem;
   const listTitle = _.capitalize(req.body.list);
+  console.log(itemName + " " + listTitle);
   const addItem = new Item({
     name : itemName
   });
@@ -84,10 +86,11 @@ app.post("/", function(req, res){
   } else {
     List.findOne({name:listTitle}, function(err, findItem){
       if(!err){
-        console.log(findItem);
+        //console.log(findItem);
         findItem.items.push(addItem);
-        findItem.save();
-        res.redirect("/" + listTitle);
+        findItem.save(function(err){
+          res.redirect("/" + listTitle);
+        })
       } else {
         console.log(err);
       }
@@ -121,7 +124,7 @@ app.post('/delete', function(req, res){
 
 });
 
-
+// To create list on the fly (creating list dynamically)
 app.get("/:customList", function(req, res){
   const customListName = _.capitalize(req.params.customList);
   List.findOne({name : customListName}, function(err, findList){//returns findList (object)
